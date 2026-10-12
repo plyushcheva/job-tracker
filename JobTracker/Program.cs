@@ -45,11 +45,24 @@ static void AddApplication(ApplicationStore store){
         return;
     }
 
+    Console.Write("Applied on (yyyy-MM-dd, Enter for today): ");
+    var dateInput = Console.ReadLine()?.Trim();
+    DateOnly? appliedOn = null;
+    if (!string.IsNullOrEmpty(dateInput))
+    {
+        if (!DateOnly.TryParseExact(dateInput, "yyyy-MM-dd", out var parsed))
+        {
+            Console.WriteLine("Invalid date. Use the format yyyy-MM-dd, e.g. 2026-10-15.");
+            return;
+        }
+        appliedOn = parsed;
+    }
+
     Console.Write("Notes (optional): ");
     var notes = Console.ReadLine();
 
-    var application = store.Add(company, position, notes);
-    Console.WriteLine($"Added application {application.Id} for {application.Company} - {application.Position}");
+    var added = store.Add(company, position, appliedOn, notes);
+    Console.WriteLine($"Added #{added.Id} (applied on {added.AppliedOn:yyyy-MM-dd}).");
 }
 
 static void ChangeStatus(ApplicationStore store){

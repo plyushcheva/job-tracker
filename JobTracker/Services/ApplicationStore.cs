@@ -21,19 +21,21 @@ public class ApplicationStore{
 
     public IReadOnlyList<JobApplication> GetAll => _applications;
 
-    public JobApplication Add(string company, string position, string? notes = null){
-        var application = new JobApplication{
-            Id = _applications.Count > 0 ? _applications.Max(a => a.Id) + 1 : 1,
-            Company = company,
-            Position = position,
-            AppliedOn = DateOnly.FromDateTime(DateTime.Today),
-            Notes = notes
-        };
+    public JobApplication Add(string company, string position, DateOnly? appliedOn = null, string? notes = null)
+{
+    var application = new JobApplication
+    {
+        Id = _applications.Count == 0 ? 1 : _applications.Max(a => a.Id) + 1,
+        Company = company,
+        Position = position,
+        AppliedOn = appliedOn ?? DateOnly.FromDateTime(DateTime.Today),
+        Notes = notes
+    };
 
-        _applications.Add(application);
-        SaveOptions();
-        return application;
-    }
+    _applications.Add(application);
+    SaveOptions();
+    return application;
+}
 
     private List<JobApplication> LoadApplications(){
         if(!File.Exists(_filePath)){
