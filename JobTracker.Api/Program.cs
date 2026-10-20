@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
+using JobTracker.Api.Data;
 using JobTracker.Models;
-using JobTracker.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,10 +10,15 @@ builder.Services.AddSwaggerGen();
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-var dataFile = builder.Configuration["DataFile"] ?? "applications.json";
-builder.Services.AddSingleton(new ApplicationStore(dataFile));
+var connectionString = builder.Configuration.GetConnectionString("Default") ?? "Data Source=applications.db";
+builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connectionString));
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -22,28 +28,61 @@ if (app.Environment.IsDevelopment())
 
 var api = app.MapGroup("/api");
 
-api.MapGet("/applications", (ApplicationStore store, ApplicationStatus? status) =>
-    status is null ? store.GetAll() : store.FilterByStatus(status.Value));
+api.MapGet("/applications", async (AppDbContext db, ApplicationStatus? status) =>
+{
+    var query = db.Applications.AsNoTracking();
+    if (status is not null)
+        query = query.Where(a => a.Status == status);
 
-api.MapGet("/applications/{id:int}", (int id, ApplicationStore store) =>
-    store.GetById(id) is { } application ? Results.Ok(application) : Results.NotFound());
+    return await query.OrderByDescending(a => a.AppliedOn).ThenBy(a => a.Id).ToListAsync();
+});
 
-api.MapPost("/applications", (CreateApplicationRequest request, ApplicationStore store) =>
+api.MapGet("/applications/{id:int}", async (int id, AppDbContext db) =>
+    await db.Applications.FindAsync(id) is { } application ? Results.Ok(application) : Results.NotFound());
+
+api.MapPost("/applications", async (CreateApplicationRequest request, AppDbContext db) =>
 {
     if (string.IsNullOrWhiteSpace(request.Company) || string.IsNullOrWhiteSpace(request.Position))
         return Results.BadRequest("Company and Position are required.");
 
-    var created = store.Add(request.Company.Trim(), request.Position.Trim(), request.AppliedOn, request.Notes);
-    return Results.Created($"/api/applications/{created.Id}", created);
+    var application = new JobApplication
+    {
+        Company = request.Company.Trim(),
+        Position = request.Position.Trim(),
+        AppliedOn = request.AppliedOn ?? DateOnly.FromDateTime(DateTime.Today),
+        Notes = request.Notes
+    };
+
+    db.Applications.Add(application);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/applications/{application.Id}", application);
 });
 
-api.MapPut("/applications/{id:int}/status", (int id, UpdateStatusRequest request, ApplicationStore store) =>
-    store.UpdateStatus(id, request.Status) ? Results.NoContent() : Results.NotFound());
+api.MapPut("/applications/{id:int}/status", async (int id, UpdateStatusRequest request, AppDbContext db) =>
+{
+    var application = await db.Applications.FindAsync(id);
+    if (application is null) return Results.NotFound();
 
-api.MapDelete("/applications/{id:int}", (int id, ApplicationStore store) =>
-    store.Delete(id) ? Results.NoContent() : Results.NotFound());
+    application.Status = request.Status;
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
 
-api.MapGet("/stats", (ApplicationStore store) => store.CountByStatus());
+api.MapDelete("/applications/{id:int}", async (int id, AppDbContext db) =>
+{
+    var application = await db.Applications.FindAsync(id);
+    if (application is null) return Results.NotFound();
+
+    db.Applications.Remove(application);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+api.MapGet("/stats", async (AppDbContext db) =>
+    await db.Applications
+        .GroupBy(a => a.Status)
+        .Select(group => new { Status = group.Key, Count = group.Count() })
+        .ToListAsync());
 
 app.Run();
 
