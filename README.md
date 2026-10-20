@@ -1,10 +1,9 @@
 # Job Application Tracker
 
-![CI](https://github.com/YOUR-USERNAME/job-tracker/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/plyushcheva/job-tracker/actions/workflows/ci.yml/badge.svg)
 
 A full-stack C# / .NET 8 app for tracking job applications: add applications, move them through a status pipeline (Applied → Interview → Offer → Rejected), filter, and see them in a web UI.
 
-![Screenshot](docs/screenshot.png)
 
 ## Architecture
 
