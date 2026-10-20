@@ -19,7 +19,8 @@ public class ApplicationStore{
         _applications = LoadApplications();
     }
 
-    public IReadOnlyList<JobApplication> GetAll => _applications;
+    public IReadOnlyList<JobApplication> GetAll() => _applications;
+    public JobApplication? GetById(int id) => _applications.FirstOrDefault(a => a.Id == id);
 
     public JobApplication Add(string company, string position, DateOnly? appliedOn = null, string? notes = null)
 {

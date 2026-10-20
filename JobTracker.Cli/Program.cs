@@ -9,7 +9,7 @@ while(true){
     Console.Write(">");
 
     switch(Console.ReadLine()){
-        case "1": PrintAll(store.GetAll); break;
+        case "1": PrintAll(store.GetAll()); break;
         case "2": AddApplication(store); break;
         case "3": ChangeStatus(store); break;
         case "4": DeleteApplication(store); break;
@@ -72,7 +72,7 @@ static void ChangeStatus(ApplicationStore store){
         return;
     }
 
-    var application = store.GetAll.FirstOrDefault(a => a.Id == id);
+    var application = store.GetAll().FirstOrDefault(a => a.Id == id);
     if(application == null){
         Console.WriteLine($"No application found with ID {id}.");
         return;

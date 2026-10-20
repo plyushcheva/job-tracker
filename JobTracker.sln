@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobTracker.Core", "JobTracker.Core\JobTracker.Core.csproj", "{00E0A6BB-EAAF-41D7-A834-53563D9641A8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobTracker.Cli", "JobTracker.Cli\JobTracker.Cli.csproj", "{08F27C70-33E9-4552-B34E-BF4946F01BAC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobTracker.Api", "JobTracker.Api\JobTracker.Api.csproj", "{AEE7BB84-C995-4E33-8ADC-9108E33DC25E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{00E0A6BB-EAAF-41D7-A834-53563D9641A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{00E0A6BB-EAAF-41D7-A834-53563D9641A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{00E0A6BB-EAAF-41D7-A834-53563D9641A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{00E0A6BB-EAAF-41D7-A834-53563D9641A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08F27C70-33E9-4552-B34E-BF4946F01BAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08F27C70-33E9-4552-B34E-BF4946F01BAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08F27C70-33E9-4552-B34E-BF4946F01BAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08F27C70-33E9-4552-B34E-BF4946F01BAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEE7BB84-C995-4E33-8ADC-9108E33DC25E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEE7BB84-C995-4E33-8ADC-9108E33DC25E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEE7BB84-C995-4E33-8ADC-9108E33DC25E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEE7BB84-C995-4E33-8ADC-9108E33DC25E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
