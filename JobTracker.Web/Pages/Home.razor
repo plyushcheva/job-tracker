@@ -1,0 +1,211 @@
+﻿@page "/"
+@using JobTracker.Models
+@using JobTracker.Web.Services
+@inject ApplicationsClient Client
+
+<PageTitle>Job Tracker</PageTitle>
+
+<h1>Job Applications</h1>
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="card card-body mb-4">
+    <h5>Add application</h5>
+    <div class="row g-2">
+        <div class="col-md-3"><input class="form-control" placeholder="Company" @bind="company" /></div>
+        <div class="col-md-3"><input class="form-control" placeholder="Position" @bind="position" /></div>
+        <div class="col-md-2"><input type="date" class="form-control" @bind="appliedOn" /></div>
+        <div class="col-md-3"><input class="form-control" placeholder="Notes (optional)" @bind="notes" /></div>
+        <div class="col-md-1"><button class="btn btn-primary w-100" @onclick="AddAsync">Add</button></div>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label class="me-2">Filter by status:</label>
+    <select class="form-select d-inline-block w-auto" @onchange="OnFilterChanged">
+        <option value="">All</option>
+        @foreach (var s in Enum.GetValues<ApplicationStatus>())
+        {
+            <option value="@s">@s</option>
+        }
+    </select>
+</div>
+
+@if (applications is null)
+{
+    <p>Loading...</p>
+}
+else if (applications.Count == 0)
+{
+    <p>No applications yet.</p>
+}
+else
+{
+    <table class="table table-striped align-middle">
+    <thead>
+        <tr>
+            <th>Company</th>
+            <th>Position</th>
+            <th>Applied on</th>
+            <th>Status</th>
+            <th>Notes</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var a in applications)
+            {
+                if (editingId == a.Id)
+                {
+                    <tr>
+                        <td><input class="form-control form-control-sm" @bind="editCompany" /></td>
+                        <td><input class="form-control form-control-sm" @bind="editPosition" /></td>
+                        <td><input type="date" class="form-control form-control-sm" @bind="editAppliedOn" /></td>
+                        <td>@a.Status</td>
+                        <td><input class="form-control form-control-sm" @bind="editNotes" /></td>
+                        <td class="text-nowrap">
+                            <button class="btn btn-sm btn-success me-1" @onclick="SaveEditAsync">Save</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="CancelEdit">Cancel</button>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    <tr>
+                        <td>@a.Company</td>
+                        <td>@a.Position</td>
+                        <td>@a.AppliedOn.ToString("yyyy-MM-dd")</td>
+                        <td>
+                            <select class="form-select form-select-sm" value="@a.Status"
+                                @onchange="e => ChangeStatusAsync(a.Id, e)">
+                                @foreach (var s in Enum.GetValues<ApplicationStatus>())
+                                {
+                                    <option value="@s">@s</option>
+                                }
+                            </select>
+                        </td>
+                        <td>@a.Notes</td>
+                        <td class="text-nowrap">
+                            <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => StartEdit(a)">Edit</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(a.Id)">Delete</button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<JobApplication>? applications;
+    private ApplicationStatus? filter;
+    private string company = "";
+    private string position = "";
+    private DateOnly appliedOn = DateOnly.FromDateTime(DateTime.Today);
+    private string? notes;
+    private string? error;
+
+    private int? editingId;
+    private string editCompany = "";
+    private string editPosition = "";
+    private DateOnly editAppliedOn;
+    private string? editNotes;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            applications = await Client.GetAllAsync(filter);
+            error = null;
+        }
+        catch (HttpRequestException)
+        {
+            error = "Cannot reach the API. Is it running on http://localhost:5292 ?";
+        }
+    }
+
+    private async Task OnFilterChanged(ChangeEventArgs e)
+    {
+        filter = Enum.TryParse<ApplicationStatus>(e.Value?.ToString(), out var status) ? status : null;
+        await LoadAsync();
+    }
+
+    private async Task AddAsync()
+    {
+        if (string.IsNullOrWhiteSpace(company) || string.IsNullOrWhiteSpace(position))
+        {
+            error = "Company and position are required.";
+            return;
+        }
+
+        if (await Client.AddAsync(company.Trim(), position.Trim(), appliedOn, notes))
+        {
+            company = "";
+            position = "";
+            notes = null;
+            appliedOn = DateOnly.FromDateTime(DateTime.Today);
+            await LoadAsync();
+        }
+        else
+        {
+            error = "Could not add the application.";
+        }
+    }
+
+    private void StartEdit(JobApplication a)
+    {
+        editingId = a.Id;
+        editCompany = a.Company;
+        editPosition = a.Position;
+        editAppliedOn = a.AppliedOn;
+        editNotes = a.Notes;
+        error = null;
+    }
+
+    private void CancelEdit() => editingId = null;
+
+    private async Task SaveEditAsync()
+    {
+        if (editingId is null) return;
+
+        if (string.IsNullOrWhiteSpace(editCompany) || string.IsNullOrWhiteSpace(editPosition))
+        {
+            error = "Company and position are required.";
+            return;
+        }
+
+        if (await Client.UpdateAsync(editingId.Value, editCompany.Trim(), editPosition.Trim(), editAppliedOn, editNotes))
+        {
+            editingId = null;
+            await LoadAsync();
+        }
+        else
+        {
+            error = "Could not save the changes.";
+        }
+    }
+
+    private async Task ChangeStatusAsync(int id, ChangeEventArgs e)
+    {
+        if (!Enum.TryParse<ApplicationStatus>(e.Value?.ToString(), out var status))
+        {
+            error = $"Unknown status: {e.Value}";
+            return;
+        }
+
+        var ok = await Client.UpdateStatusAsync(id, status);
+        await LoadAsync();
+        if (!ok) error = "Could not change the status.";
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        await Client.DeleteAsync(id);
+        await LoadAsync();
+    }
+}

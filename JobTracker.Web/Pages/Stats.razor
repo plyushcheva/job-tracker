@@ -1,0 +1,36 @@
+@page "/stats"
+@using JobTracker.Models
+@using JobTracker.Web.Services
+@inject ApplicationsClient Client
+
+<PageTitle>Stats</PageTitle>
+
+<h1>Statistics</h1>
+
+@if (counts is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    var total = counts.Sum(c => c.Count);
+    <p>Total applications: <strong>@total</strong></p>
+
+    foreach (var status in Enum.GetValues<ApplicationStatus>())
+    {
+        var count = counts.FirstOrDefault(c => c.Status == status)?.Count ?? 0;
+        var percent = total == 0 ? 0 : count * 100 / total;
+        <div class="mb-3">
+            <div>@status: @count</div>
+            <div class="progress">
+                <div class="progress-bar" style="width: @(percent)%"></div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private List<StatusCount>? counts;
+
+    protected override async Task OnInitializedAsync() => counts = await Client.GetStatsAsync();
+}

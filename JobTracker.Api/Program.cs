@@ -10,6 +10,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
+    policy.WithOrigins("http://localhost:5200").AllowAnyHeader().AllowAnyMethod()));
+
 var connectionString = builder.Configuration.GetConnectionString("Default") ?? "Data Source=applications.db";
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connectionString));
 
@@ -25,6 +28,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors();
 
 var api = app.MapGroup("/api");
 
@@ -58,6 +63,22 @@ api.MapPost("/applications", async (CreateApplicationRequest request, AppDbConte
     return Results.Created($"/api/applications/{application.Id}", application);
 });
 
+api.MapPut("/applications/{id:int}", async (int id, UpdateApplicationRequest request, AppDbContext db) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Company) || string.IsNullOrWhiteSpace(request.Position))
+        return Results.BadRequest("Company and Position are required.");
+
+    var application = await db.Applications.FindAsync(id);
+    if (application is null) return Results.NotFound();
+
+    application.Company = request.Company.Trim();
+    application.Position = request.Position.Trim();
+    application.AppliedOn = request.AppliedOn;
+    application.Notes = request.Notes;
+    await db.SaveChangesAsync();
+    return Results.Ok(application);
+});
+
 api.MapPut("/applications/{id:int}/status", async (int id, UpdateStatusRequest request, AppDbContext db) =>
 {
     var application = await db.Applications.FindAsync(id);
@@ -88,3 +109,7 @@ app.Run();
 
 public record CreateApplicationRequest(string Company, string Position, DateOnly? AppliedOn, string? Notes);
 public record UpdateStatusRequest(ApplicationStatus Status);
+
+public record UpdateApplicationRequest(string Company, string Position, DateOnly AppliedOn, string? Notes);
+
+public partial class Program { }

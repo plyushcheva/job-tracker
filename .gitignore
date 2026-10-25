@@ -484,3 +484,5 @@ $RECYCLE.BIN/
 *.swp
 applications.json
 *.db
+*.db-wal
+*.db-shm
